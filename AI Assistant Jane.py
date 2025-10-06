@@ -1,7 +1,6 @@
 """
 Modern AI Virtual Assistant with GUI and Terminal Support
 Features: OpenAI integration, voice recognition, sleek interface
-Author: Enhanced version
 """
 
 import pyttsx3
@@ -341,4 +340,5 @@ def main():
 if __name__ == "__main__":
     main()
      
+
 
