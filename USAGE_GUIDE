@@ -1,6 +1,8 @@
 # 🎯 AI Assistant - Complete Usage Guide
 
-A step-by-step guide to mastering your AI assistant.
+**Version 2.1.0** | **Last Updated: November 2025** | **Status: Stable**
+
+A step-by-step guide to mastering your AI assistant with all the latest v2.1.0 features.
 
 ---
 
@@ -12,10 +14,11 @@ A step-by-step guide to mastering your AI assistant.
 4. [Text Commands](#text-commands)
 5. [AI Conversations](#ai-conversations)
 6. [Web Navigation](#web-navigation)
-7. [Media Control](#media-control)
-8. [Productivity Features](#productivity-features)
+7. [Productivity Features](#productivity-features)
+8. [New Features in v2.1.0](#new-features-in-v210)
 9. [Tips & Tricks](#tips--tricks)
 10. [Common Workflows](#common-workflows)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -46,38 +49,53 @@ A step-by-step guide to mastering your AI assistant.
 - ✅ Speakers/headphones connected
 - ✅ Internet connection active
 - ✅ OpenAI API key configured (optional but recommended)
+- 🆕 Version 2.1.0 installed (check terminal banner)
 
 ---
 
 ## Basic Usage
 
-### GUI Mode Interface
+### GUI Mode Interface (v2.1.0)
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  🤖 AI Assistant                                │
+│  🤖 AI Assistant v2.1.0                         │
+│      AI-Powered                                 │
 ├─────────────────────────────────────────────────┤
 │  ┌───────────────────────────────────────────┐ │
 │  │  Conversation History                     │ │
 │  │                                           │ │
-│  │  👤 You: What time is it?                │ │
-│  │  🤖 Assistant: The time is 3:45 PM       │ │
+│  │  [15:30] 👤 You: What time is it?        │ │
+│  │  [15:30] 🤖 Assistant: The time is 3:30  │ │
 │  │                                           │ │
 │  └───────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────┤
 │  ┌───────────────────────────────────────────┐ │
 │  │ Type your message here...                 │ │
 │  └───────────────────────────────────────────┘ │
-│  [Voice] [Send] [Clear] [Exit]                  │
+│  [🎤 Voice] [📤 Send] [🗑️ Clear] [❓ Help] [🚪 Exit] │
+├─────────────────────────────────────────────────┤
+│  Status: Ready                                  │
 └─────────────────────────────────────────────────┘
 ```
 
+#### New Features in v2.1.0 GUI
+
+- **Version Display** - Shows v2.1.0 in title
+- **Timestamps** - All messages show time [HH:MM]
+- **Status Bar** - Shows current activity (Ready, Listening, Processing)
+- **Help Button** - Quick access to commands
+- **Better Colors** - User messages in green, assistant in blue, system in yellow
+- **Hover Effects** - Buttons change color on hover
+- **Thread Safety** - No more freezing during API calls
+
 #### Button Functions
 
-- **Voice**: Activate microphone for voice input
-- **Send**: Submit your typed message (or press Enter)
-- **Clear**: Clear conversation history
-- **Exit**: Close the application
+- **🎤 Voice** - Activate microphone for voice input (shows "⏸️ Listening..." when active)
+- **📤 Send** - Submit your typed message (or press Enter)
+- **🗑️ Clear** - Clear conversation history with confirmation
+- **❓ Help** - Show available commands (NEW in v2.1)
+- **🚪 Exit** - Close the application with confirmation
 
 #### Keyboard Shortcuts
 
@@ -86,17 +104,18 @@ A step-by-step guide to mastering your AI assistant.
 - `Ctrl + L` - Clear screen
 - `Ctrl + Q` or `Ctrl + W` - Exit
 
-### Terminal Mode Interface
+### Terminal Mode Interface (v2.1.0)
 
 ```
 ============================================================
-🤖 AI ASSISTANT - Terminal Mode
+🤖 AI ASSISTANT v2.1.0 - Terminal Mode
 ============================================================
 
 Commands:
   - Say 'listen' to use voice input
   - Type your questions directly
   - Say 'exit' to quit
+  - Say 'help' for available commands (NEW)
 
 ============================================================
 
@@ -105,6 +124,14 @@ Commands:
 👤 You: _
 ```
 
+#### New in v2.1.0 Terminal Mode
+
+- **Version Display** - Shows v2.1.0 in banner
+- **Help Command** - Type "help" for command list
+- **Better Error Messages** - Clear instructions on failures
+- **Improved Logging** - Errors show with context
+- **Graceful Degradation** - Works even if some features fail
+
 ---
 
 ## Voice Commands
@@ -112,10 +139,12 @@ Commands:
 ### Activating Voice Input
 
 **GUI Mode:**
-1. Click the "Voice" button
-2. Wait for "🎤 Listening..." status
-3. Speak your command
-4. Wait for "🔄 Recognizing..." status
+1. Click the "🎤 Voice" button
+2. Button changes to "⏸️ Listening..." (NEW in v2.1)
+3. Wait for "🎤 Listening..." in chat
+4. Speak your command
+5. Wait for "🔄 Recognizing..." status
+6. Button returns to "🎤 Voice" when done
 
 **Terminal Mode:**
 1. Type: `listen`
@@ -123,7 +152,7 @@ Commands:
 3. Wait for "🎤 Listening..." prompt
 4. Speak your command
 
-### Voice Recognition Tips
+### Voice Recognition Tips (Updated for v2.1.0)
 
 #### ✅ DO:
 - Speak clearly and at normal pace
@@ -132,6 +161,7 @@ Commands:
 - Wait for "Listening..." before speaking
 - Use simple, direct commands
 - Pause briefly between words
+- 🆕 Let dynamic threshold adapt (first few uses may vary)
 
 #### ❌ DON'T:
 - Shout or whisper
@@ -139,24 +169,41 @@ Commands:
 - Use very complex sentences
 - Interrupt during recognition
 - Have TV/music playing loudly
+- Move microphone during speech
 
-### Troubleshooting Voice Input
+### New in v2.1.0: Dynamic Energy Threshold
+
+The assistant now **automatically adapts** to your environment:
+- First use: May take a moment to calibrate
+- Subsequent uses: Adapts to ambient noise
+- No manual adjustment needed
+- Better recognition in various environments
+
+### Troubleshooting Voice Input (v2.1.0)
 
 **"Could not understand audio":**
 - Speak more clearly
 - Reduce background noise
 - Check microphone volume
 - Try speaking slightly slower
+- 🆕 Wait a moment for threshold to adapt
 
 **"Wait Timeout Error":**
 - System didn't detect speech start
 - Ensure microphone is working
 - Speak louder or check mic sensitivity
+- 🆕 Check status bar for "Listening" confirmation
 
 **Recognition is slow:**
 - Normal for first use (Google API initialization)
 - Check internet connection speed
 - Subsequent uses will be faster
+- 🆕 v2.1.0 has better timeout handling
+
+**NEW: Voice input doesn't freeze GUI anymore!**
+- Threading implemented in v2.1.0
+- GUI remains responsive during voice recognition
+- Can cancel by clicking elsewhere
 
 ---
 
@@ -164,7 +211,37 @@ Commands:
 
 ### Command Categories
 
-#### 1. Information Queries
+#### 1. System Commands (NEW/UPDATED in v2.1.0)
+
+**Help (NEW):**
+```
+help
+what can you do
+commands
+show commands
+```
+
+**Response:**
+```
+Available commands:
+• Time: "what time is it?"
+• Date: "what's the date?"
+• Search: "search for [topic]"
+• Websites: "open google/youtube/github/etc"
+• Exit: "exit" or "quit"
+• Help: "help" or "what can you do?"
+• AI Chat: Ask me anything! (if OpenAI configured)
+```
+
+**Exit:**
+```
+exit
+quit
+bye
+goodbye
+```
+
+#### 2. Information Queries
 
 **Time:**
 ```
@@ -172,6 +249,7 @@ what time is it
 tell me the time
 what's the time
 time please
+current time
 ```
 
 **Date:**
@@ -180,9 +258,19 @@ what's the date
 what day is it
 today's date
 tell me the date
+what is today
 ```
 
-#### 2. Web Searches
+**Example Output (with timestamps in v2.1.0):**
+```
+[15:30] 👤 You: what time is it
+[15:30] 🤖 Assistant: The time is 3:30 PM
+
+[15:31] 👤 You: what's the date
+[15:31] 🤖 Assistant: Today is Thursday, November 27, 2025
+```
+
+#### 3. Web Searches (IMPROVED in v2.1.0)
 
 **General Search:**
 ```
@@ -192,15 +280,23 @@ find [topic]
 google [topic]
 ```
 
+**NEW in v2.1.0 - More Flexible Syntax:**
+```
+google python tutorials  ← No "search for" needed!
+youtube cat videos       ← Direct YouTube search!
+search AI news          ← Simpler syntax
+```
+
 **Examples:**
 ```
 search for Python tutorials
 look up weather forecast
 find best restaurants nearby
 google machine learning courses
+google AI news            ← NEW: Shorter syntax
 ```
 
-#### 3. Website Navigation
+#### 4. Website Navigation (IMPROVED in v2.1.0)
 
 **Direct Access:**
 ```
@@ -214,37 +310,34 @@ open facebook
 open reddit
 ```
 
-**With Search:**
+**With Search (NEW Syntax):**
 ```
 open google python tutorials
-youtube cat videos
+youtube cat videos           ← NEW: No "open" needed!
 github react projects
+open youtube music
 ```
 
-#### 4. Wikipedia Queries
+**NEW in v2.1.0: Better Error Handling**
+- Clear error message if browser fails to open
+- Doesn't crash the application
+- Suggests alternatives
 
-```
-wikipedia [topic]
-wiki [topic]
-what is [topic]
-tell me about [topic]
-```
+#### 5. Search Commands
 
-**Examples:**
+**Web Search:**
 ```
-wikipedia quantum computing
-what is blockchain
-tell me about Einstein
-wiki python programming
+search for machine learning
+google quantum computing
+find best laptops 2024
+look up python documentation
 ```
 
-#### 5. System Commands
-
+**NEW in v2.1.0:**
 ```
-exit / quit / bye / goodbye  - Close assistant
-help - Show available commands
-clear - Clear conversation history
-status - Show system status
+google AI                    ← Simpler syntax
+search news                  ← Works without "for"
+find pizza near me           ← Natural language
 ```
 
 ---
@@ -258,88 +351,110 @@ status - Show system status
    python ai_assistant.py --config
    ```
 
-2. **Enter your API key** when prompted
+2. **Choose Model (NEW in v2.1.0):**
+   ```
+   Enter OpenAI model (default: gpt-3.5-turbo):
+   Options:
+   - gpt-3.5-turbo (Faster, cheaper, recommended)
+   - gpt-4 (Smarter, more expensive)
+   - gpt-4-turbo (Fast GPT-4)
+   ```
 
-3. **Start chatting!** Ask anything:
+3. **Start chatting!** Ask anything
 
 ### Conversation Types
 
 #### 1. General Knowledge
 
 ```
-👤 You: What is quantum computing?
-🤖 Quantum computing uses quantum mechanical phenomena 
-   like superposition and entanglement to perform 
-   calculations that would be impossible for classical 
-   computers...
+[15:35] 👤 You: What is quantum computing?
+[15:35] 🤖 Quantum computing uses quantum mechanical phenomena 
+        like superposition and entanglement to perform 
+        calculations that would be impossible for classical 
+        computers...
 
-👤 You: Give me an example
-🤖 One example is Shor's algorithm, which can factor 
-   large numbers exponentially faster than classical 
-   algorithms...
+[15:36] 👤 You: Give me an example
+[15:36] 🤖 One example is Shor's algorithm, which can factor 
+        large numbers exponentially faster than classical 
+        algorithms...
 ```
 
 #### 2. Creative Tasks
 
 ```
-👤 You: Write a haiku about coding
-🤖 Keys click through the night
-   Debugging endless errors
-   Coffee keeps me bright
+[15:40] 👤 You: Write a haiku about coding
+[15:40] 🤖 Keys click through the night
+        Debugging endless errors
+        Coffee keeps me bright
 
-👤 You: Now make it about AI
-🤖 Neural nets awake
-   Learning from data streams flow
-   Intelligence grows
+[15:41] 👤 You: Now make it about AI
+[15:41] 🤖 Neural nets awake
+        Learning from data streams flow
+        Intelligence grows
 ```
 
 #### 3. Problem Solving
 
 ```
-👤 You: Help me debug this Python error: 
-       "IndexError: list index out of range"
-🤖 This error occurs when you're trying to access 
-   a list index that doesn't exist. Common causes:
-   1. Empty list
-   2. Index >= len(list)
-   3. Negative index too large
-   Would you like specific examples?
+[15:45] 👤 You: Help me debug this Python error: 
+        "IndexError: list index out of range"
+[15:45] 🤖 This error occurs when you're trying to access 
+        a list index that doesn't exist. Common causes:
+        1. Empty list
+        2. Index >= len(list)
+        3. Negative index too large
+        Would you like specific examples?
 ```
 
 #### 4. Learning & Education
 
 ```
-👤 You: Explain recursion simply
-🤖 Recursion is when a function calls itself. Think 
-   of it like a Russian nesting doll - each doll 
-   contains a smaller version of itself, until you 
-   reach the smallest doll (base case).
+[15:50] 👤 You: Explain recursion simply
+[15:50] 🤖 Recursion is when a function calls itself. Think 
+        of it like a Russian nesting doll - each doll 
+        contains a smaller version of itself, until you 
+        reach the smallest doll (base case).
 
-👤 You: Show me code
-🤖 Here's a simple factorial example:
-   def factorial(n):
-       if n <= 1:  # base case
-           return 1
-       return n * factorial(n-1)  # recursive call
+[15:51] 👤 You: Show me code
+[15:51] 🤖 Here's a simple factorial example:
+        def factorial(n):
+            if n <= 1:  # base case
+                return 1
+            return n * factorial(n-1)  # recursive call
 ```
 
-### Context Awareness
+### Context Awareness (IMPROVED in v2.1.0)
 
-The assistant remembers your last 10 messages:
+The assistant remembers your conversation with **configurable limits**:
 
+**Default: Last 10 messages**
 ```
-👤 You: My favorite color is blue
-🤖 That's nice! Blue is a calming color.
+[15:55] 👤 You: My favorite color is blue
+[15:55] 🤖 That's nice! Blue is a calming color.
 
-👤 You: What's my favorite color?
-🤖 You mentioned that your favorite color is blue!
+[15:56] 👤 You: What's my favorite color?
+[15:56] 🤖 You mentioned that your favorite color is blue!
 
-👤 You: What goes well with it?
-🤖 Blue pairs well with:
-   - White (classic and clean)
-   - Silver or gray (sophisticated)
-   - Orange (complementary contrast)
+[15:57] 👤 You: What goes well with it?
+[15:57] 🤖 Blue pairs well with:
+        - White (classic and clean)
+        - Silver or gray (sophisticated)
+        - Orange (complementary contrast)
 ```
+
+**NEW in v2.1.0: Configurable History**
+
+Edit `~/.ai_assistant_config.json`:
+```json
+{
+  "max_history": 10  // Change to 5, 15, 20, etc.
+}
+```
+
+**Benefits:**
+- **Lower history (5)**: Faster responses, lower costs
+- **Higher history (20)**: Better context, more memory
+- **Default (10)**: Balanced performance
 
 ### Best Practices for AI Chat
 
@@ -350,6 +465,7 @@ The assistant remembers your last 10 messages:
 "Compare and contrast [A] and [B]"
 "Write a [type] about [topic]"
 "Help me understand why [question]"
+"Step by step guide to [task]"
 ```
 
 #### ❌ Less Effective:
@@ -357,13 +473,26 @@ The assistant remembers your last 10 messages:
 "Tell me everything about [broad topic]"
 "Is this good?" (without context)
 "What do you think?" (too vague)
+"Help" (be specific)
 ```
+
+#### NEW in v2.1.0: Cost Management
+
+**Save tokens (and money):**
+1. Keep queries concise
+2. Lower `max_history` in config
+3. Use gpt-3.5-turbo instead of gpt-4
+4. Avoid very long conversations
+
+**Monitor usage:**
+- Check: https://platform.openai.com/account/usage
+- Average cost per query: $0.001-0.01
 
 ---
 
 ## Web Navigation
 
-### Google Search
+### Google Search (IMPROVED in v2.1.0)
 
 **Basic Search:**
 ```
@@ -372,14 +501,33 @@ google machine learning
 find best laptops 2024
 ```
 
-**Specific Queries:**
+**NEW Flexible Syntax:**
 ```
-search for "exact phrase"
-google weather Cape Town
-find news about technology
+google python              ← No "search for" needed!
+search AI news            ← Works without "for"
+find nearby restaurants   ← Natural language
 ```
 
-### YouTube
+**Specific Queries:**
+```
+google "exact phrase"
+google weather Cape Town
+find news about technology
+search python tutorials
+```
+
+**Error Handling (NEW in v2.1.0):**
+```
+[16:00] 👤 You: open google AI
+[16:00] 🤖 Searching Google for: AI
+        [Browser opens]
+
+If browser fails:
+[16:00] 🤖 Sorry, I couldn't open your browser
+        [Clear error message, no crash]
+```
+
+### YouTube (IMPROVED in v2.1.0)
 
 **Open Homepage:**
 ```
@@ -387,176 +535,196 @@ open youtube
 youtube
 ```
 
-**Search Videos:**
+**Search Videos (NEW Syntax):**
 ```
-youtube python tutorials
-search youtube for cooking videos
+youtube python tutorials     ← No "open" or "search" needed!
+search youtube for cooking
 youtube music relaxing
+open youtube cat videos
 ```
 
-### Wikipedia
-
-**Article Lookup:**
+**Response:**
 ```
-wikipedia Albert Einstein
-wiki Python programming language
-what is artificial intelligence
-```
-
-**Response Example:**
-```
-🤖 Searching Wikipedia...
-🤖 According to Wikipedia: Albert Einstein was a 
-   German-born theoretical physicist, widely held 
-   to be one of the greatest and most influential 
-   scientists of all time...
+[16:05] 👤 You: youtube python
+[16:05] 🤖 Searching YouTube for: python
+        [Opens YouTube with search results]
 ```
 
 ### Quick Site Access
 
 Create shortcuts for frequent websites:
 
-| Command | Opens |
-|---------|-------|
-| `open github` | GitHub.com |
-| `open linkedin` | LinkedIn.com |
-| `open gmail` | Gmail.com |
-| `open twitter` | Twitter.com |
-| `open facebook` | Facebook.com |
-| `open reddit` | Reddit.com |
+| Command | Opens | Status |
+|---------|-------|--------|
+| `open github` | GitHub.com | ✅ Working |
+| `open linkedin` | LinkedIn.com | ✅ Working |
+| `open gmail` | Gmail.com | ✅ Working |
+| `open twitter` | Twitter.com | ✅ Working |
+| `open facebook` | Facebook.com | ✅ Working |
+| `open reddit` | Reddit.com | ✅ Working |
 
----
-
-## Media Control
-
-### Music Playback
-
-**Setup:**
-1. Create music directory: `~/AIAssistant/music/`
-2. Add MP3/WAV files
-3. Update config if using custom path
-
-**Commands:**
-```
-play music
-play song
-start music
-```
-
-**Note:** Plays first song in directory. For specific songs:
-```
-play song on cloud [song name]
-→ Opens SoundCloud search
-```
-
-### Video Playback
-
-**Setup:**
-1. Create videos directory: `~/AIAssistant/videos/`
-2. Add MP4/AVI files
-3. Configure path in settings
-
-**Commands:**
-```
-play video
-start video
-```
-
-### Streaming Services
-
-**SoundCloud:**
-```
-play song on cloud
-→ "tell me the song name!"
-→ [speak or type song name]
-→ Opens SoundCloud with search results
-```
-
-**YouTube Music:**
-```
-youtube [artist name] [song name]
-youtube relaxing music
-youtube top hits 2024
-```
+**NEW in v2.1.0:**
+- Error recovery if site fails to open
+- Clear feedback to user
+- No application crashes
 
 ---
 
 ## Productivity Features
 
-### Email Sending
+### Built-in Help System (NEW in v2.1.0)
 
-**Command:**
+**Access Help:**
 ```
-send mail
-send email
-```
-
-**Process:**
-1. System prompts: "What should I say?"
-2. Speak/type your message
-3. Enter recipient email when prompted
-4. Enter your email credentials
-5. Email sent!
-
-**Example:**
-```
-👤 You: send mail
-🤖 What should I say?
-👤 You: Meeting scheduled for tomorrow at 3 PM
-📧 Enter recipient email: colleague@example.com
-📧 Enter your email: you@gmail.com
-🔒 Enter password: ********
-🤖 Email has been sent successfully!
+help
+what can you do
+show commands
+commands
 ```
 
-**Note:** For Gmail, use App Password instead of regular password.
-
-### Application Launching
-
-**VS Code:**
+**Help Output:**
 ```
-open vs code
-open vscode
-launch vs code
-```
-
-**Microsoft Teams:**
-```
-open teams
-start teams
-launch teams
+Available commands:
+• Time: "what time is it?"
+• Date: "what's the date?"
+• Search: "search for [topic]"
+• Websites: "open google/youtube/github/etc"
+• Exit: "exit" or "quit"
+• Help: "help" or "what can you do?"
+• AI Chat: Ask me anything!
 ```
 
-**Command Prompt/Terminal:**
+**Context-Aware Help:**
+- Shows AI features if OpenAI is configured
+- Hides AI features if not configured
+- Always shows basic commands
+
+---
+
+## New Features in v2.1.0
+
+### 1. Help Command
 ```
-open command prompt
-open terminal
-open cmd
+👤 You: help
+
+🤖 Available commands:
+   • Time queries
+   • Date queries
+   • Web searches
+   • Website navigation
+   • AI conversations (if configured)
+   • System commands
 ```
 
-**Code Blocks:**
+### 2. Status Bar (GUI Only)
+
+Bottom of window shows:
+- **"Ready"** - Waiting for input
+- **"Listening..."** - Recording voice
+- **"Recognizing..."** - Processing speech
+- **"Processing..."** - Handling command
+- **"Error"** - If something fails
+
+### 3. Timestamps
+
+All messages now have timestamps:
 ```
-open code blocks
-launch code blocks
+[15:30] 👤 You: Hello
+[15:30] 🤖 Assistant: Hi there!
+[15:31] 👤 You: What time is it?
+[15:31] 🤖 Assistant: The time is 3:31 PM
 ```
 
-### File Operations
+### 4. Better Error Messages
 
-**Open PDF:**
+**Before v2.1.0:**
 ```
-open pdf
-→ Enter full path to PDF file
-→ File opens in default PDF viewer
+Error
 ```
 
-**Custom Paths:**
-Edit configuration to set default directories for quick access.
+**v2.1.0:**
+```
+Sorry, I couldn't open your browser. Please check:
+1. Default browser is set
+2. Browser is installed
+3. Try: python ai_assistant.py --terminal
+```
+
+### 5. Thread-Safe GUI
+
+**Before v2.1.0:**
+- GUI froze during API calls
+- Voice input blocked interface
+- Frustrating user experience
+
+**v2.1.0:**
+- GUI stays responsive
+- Can type while voice is processing
+- Status bar shows activity
+- Much better experience!
+
+### 6. Logging System
+
+**Check Logs:**
+```bash
+# Console shows errors in real-time
+python ai_assistant.py --terminal
+
+# Look for messages like:
+# 2025-11-27 15:30:00 - INFO - OpenAI client initialized
+# 2025-11-27 15:30:05 - ERROR - Browser failed to open: ...
+```
+
+**Benefits:**
+- Debug issues easier
+- Track what's happening
+- Better error reporting
+
+### 7. Configurable Models
+
+**Choose AI Model:**
+```bash
+python ai_assistant.py --config
+
+# Options:
+# gpt-3.5-turbo - Fast, cheap, good quality
+# gpt-4 - Smarter, expensive, slower
+# gpt-4-turbo - Balance of speed and quality
+```
+
+**In config file:**
+```json
+{
+  "model": "gpt-3.5-turbo",
+  "max_history": 10
+}
+```
+
+### 8. Dynamic Voice Recognition
+
+**Automatic Adaptation:**
+- Adjusts to ambient noise
+- No manual calibration
+- Better recognition over time
+- Works in various environments
+
+### 9. Improved Command Parsing
+
+**More Natural Commands:**
+```
+# All of these work now:
+google python
+open google python
+search for python
+search python
+google search python
+```
 
 ---
 
 ## Tips & Tricks
 
-### Efficiency Tips
+### Efficiency Tips (Updated for v2.1.0)
 
 #### 1. Use Keyboard Shortcuts
 ```
@@ -566,80 +734,120 @@ Ctrl+L → Quick clear
 ```
 
 #### 2. Terminal Mode for Speed
-Terminal mode uses less resources and responds faster:
+Terminal mode is **faster and lighter** than GUI:
 ```bash
 python ai_assistant.py --terminal
 ```
 
-#### 3. Batch Commands
-Chain related tasks:
+Benefits:
+- Lower memory usage
+- Faster startup
+- Better for SSH sessions
+- Still has all features
+
+#### 3. Help Command
 ```
-open google machine learning
-→ Opens Google search
-→ Then ask AI: "explain the results"
+# Quick reference:
+help
+
+# Shows all available commands
+# Context-aware (shows AI features if available)
 ```
 
-#### 4. Context Continuation
-Build on previous responses:
+#### 4. Check Status Bar (GUI)
+The status bar tells you what's happening:
+- Don't click buttons while "Processing..."
+- Wait for "Ready" before next command
+- "Error" means check logs
+
+#### 5. Use Flexible Syntax (NEW in v2.1.0)
 ```
-👤 You: Tell me about Python
-🤖 [Explains Python]
-👤 You: What about its history?
-👤 You: Show me code examples
-👤 You: Compare it to Java
+# All work the same:
+search for python
+search python
+google python
+find python
 ```
 
 ### Power User Features
 
-#### 1. Quick Search Syntax
-```
-g: [query] → Google search
-yt: [query] → YouTube search
-w: [query] → Wikipedia
-```
+#### 1. Configure for Your Needs
 
-#### 2. Config Tweaking
-Optimize for your preferences:
+**Fast & Cheap:**
 ```json
 {
-  "voice_rate": 200,  // Faster speech
-  "auto_listen": true,  // Auto-activate mic
-  "verbose_mode": false  // Less console output
+  "model": "gpt-3.5-turbo",
+  "max_history": 5,
+  "voice_rate": 200
 }
 ```
 
-#### 3. Custom Aliases
-Add to config for shortcuts:
+**Smart & Detailed:**
 ```json
 {
-  "aliases": {
-    "mail": "open gmail",
-    "code": "open vs code",
-    "meet": "open teams"
-  }
+  "model": "gpt-4",
+  "max_history": 20,
+  "voice_rate": 150
 }
 ```
 
-### Voice Recognition Optimization
+#### 2. Monitor Performance
 
-#### 1. Train Your Environment
-The system adapts to your voice and environment. Use it regularly for better accuracy.
+**Check Logs:**
+```bash
+# Run in terminal to see logs
+python ai_assistant.py --terminal
 
-#### 2. Noise Profile
-```python
-# Adjust in ai_assistant.py
-self.recognizer.energy_threshold = 400  # Higher for noisy
-self.recognizer.dynamic_energy_threshold = True  # Auto-adjust
+# Look for timing information
 ```
 
-#### 3. Alternative Recognition
-If Google fails, try:
-- Speaking slower
-- Enunciating more
-- Using simpler vocabulary
-- Typing instead (faster anyway!)
+**OpenAI Usage:**
+- Visit: https://platform.openai.com/account/usage
+- Monitor costs
+- Set spending limits
 
-### AI Conversation Tips
+#### 3. Optimize Voice Recognition
+
+**First Time Setup:**
+```bash
+# Let it calibrate (first 2-3 uses)
+# Recognition improves automatically
+# Dynamic threshold adapts to your environment
+```
+
+**For Best Results:**
+- Quiet environment
+- Quality microphone
+- 6-12 inches distance
+- Normal speaking voice
+- Clear enunciation
+
+### Voice Recognition Optimization (v2.1.0)
+
+#### 1. Dynamic Threshold (NEW)
+System automatically adjusts:
+- First use: May take a moment
+- Subsequent uses: Better recognition
+- No manual adjustment needed
+- Adapts to environment
+
+#### 2. Timeout Handling
+```bash
+# If timeout occurs:
+# - Try speaking sooner after "Listening..."
+# - Check microphone isn't muted
+# - Ensure mic permissions granted
+```
+
+#### 3. Error Recovery
+```bash
+# v2.1.0 handles errors gracefully:
+# - Clear error messages
+# - Doesn't crash
+# - Try again immediately
+```
+
+### AI Conversation Tips (v2.1.0)
 
 #### 1. Be Specific
 ```
@@ -647,12 +855,15 @@ If Google fails, try:
 ✅ "Explain the difference between RAM and ROM"
 ```
 
-#### 2. Ask Follow-ups
+#### 2. Use Context (NEW History Limit)
 ```
 👤 What is machine learning?
-👤 Give me an example
-👤 How is it used in healthcare?
+🤖 [Explains ML]
+👤 Give me an example        ← Uses context
+👤 How is it used in healthcare?  ← Still has context
 ```
+
+With `max_history: 10`, last 10 exchanges are remembered.
 
 #### 3. Request Format
 ```
@@ -660,13 +871,19 @@ If Google fails, try:
 "Give me a code example"
 "Compare in table format"
 "ELI5 (Explain Like I'm 5)"
+"Step by step instructions"
 ```
 
-#### 4. Save Tokens
-Shorter queries = lower costs:
+#### 4. Cost Management (NEW)
 ```
-❌ "Could you please help me understand the concept of..."
-✅ "Explain [concept]"
+# Lower costs:
+- Use gpt-3.5-turbo
+- Set max_history: 5
+- Keep queries short
+- End sessions when done
+
+# Check usage:
+https://platform.openai.com/account/usage
 ```
 
 ---
@@ -676,17 +893,183 @@ Shorter queries = lower costs:
 ### Morning Routine
 
 ```python
-1. Launch assistant
-2. "What time is it?"
-3. "What's today's date?"
-4. "Search for today's news"
-5. "Open gmail"
-6. Check emails while AI summarizes news
+1. Launch assistant: python ai_assistant.py
+2. "What time is it?"           # Check time
+3. "What's today's date?"       # Check date
+4. "google today's news"        # Read news
+5. "open gmail"                 # Check email
+6. Ask AI for daily summary     # If configured
 ```
 
 ### Research Workflow
 
 ```python
-1. "Wikipedia [topic]" → Get overview
-2. "Explain [specific concept]" → Detailed AI explanation
-3. "Google [topic] research papers"
+1. "help"                       # Review commands
+2. "google [topic]"             # Initial search
+3. Ask AI: "Explain [concept]"  # Get overview
+4. "search [specific term]"     # Deeper dive
+5. Ask AI for summary           # Consolidate learning
+```
+
+### Coding Session
+
+```python
+1. "open github"                # Check repositories
+2. "open vs code"               # Launch editor (if configured)
+3. Ask AI: "How do I [task]?"  # Get code help
+4. "search [error message]"     # Debug issues
+5. Ask AI: "Explain [concept]"  # Learn as you go
+```
+
+### Quick Information Lookup
+
+```python
+1. Launch terminal mode (faster)
+2. Type quick queries
+3. Use help command for reference
+4. Exit when done
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues (v2.1.0)
+
+#### GUI Freezes
+**FIXED in v2.1.0!** If you experience freezing:
+1. Update to v2.1.0
+2. Check you're running latest version: Title shows "v2.1.0"
+3. If still freezes, try terminal mode
+
+#### Voice Not Working
+**Check:**
+1. Status bar shows "Listening..." (GUI)
+2. Microphone permissions granted
+3. No other app using microphone
+4. PyAudio installed correctly
+5. Try: `python -c "import pyaudio"`
+
+#### Help Command Not Found
+**Solution:**
+- Update to v2.1.0
+- Command: `help`, `what can you do`, or `commands`
+- Available in both GUI and terminal modes
+
+#### No Timestamps in Chat
+**Solution:**
+- Update to v2.1.0
+- GUI shows timestamps like [15:30]
+- Terminal mode shows in console
+
+#### Browser Won't Open
+**v2.1.0 Error Message:**
+```
+Sorry, I couldn't open your browser
+```
+
+**Check:**
+1. Default browser is set
+2. Browser is installed
+3. Internet connection active
+4. Try terminal mode: `python ai_assistant.py --terminal`
+
+### Error Messages Guide (v2.1.0)
+
+| Error | Meaning | Solution |
+|-------|---------|----------|
+| "OpenAI is not configured" | No API key | Run: `python ai_assistant.py --config` |
+| "Could not understand audio" | Voice recognition failed | Speak clearly, reduce noise |
+| "Sorry, I couldn't open your browser" | Browser error | Check default browser settings |
+| "Listening timeout" | No speech detected | Speak sooner after "Listening..." |
+| "Speech recognition service unavailable" | Internet/service issue | Check connection |
+
+### Performance Issues
+
+#### Slow Response
+**Check:**
+1. Internet connection speed
+2. OpenAI API status
+3. System resources (CPU/RAM)
+4. Try terminal mode (lighter)
+
+**Optimize:**
+- Use gpt-3.5-turbo instead of gpt-4
+- Lower max_history: 5
+- Close other applications
+
+#### High CPU Usage
+**Solutions:**
+1. Use terminal mode
+2. Close GUI when not needed
+3. Limit conversation history
+4. Check for memory leaks (restart if needed)
+
+---
+
+## Quick Reference Card (v2.1.0)
+
+```
+┌─────────────────────────────────────────────────────┐
+│         AI ASSISTANT v2.1.0 COMMANDS                │
+├─────────────────────────────────────────────────────┤
+│ System (NEW):                                       │
+│   • help / what can you do                          │
+│   • exit / quit / bye                               │
+│                                                     │
+│ Information:                                        │
+│   • what time is it                                 │
+│   • what's the date                                 │
+│                                                     │
+│ Web (IMPROVED):                                     │
+│   • google [topic]          ← NEW: Simpler!        │
+│   • youtube [topic]         ← NEW: No "open"!      │
+│   • search [topic]                                  │
+│   • open [website]                                  │
+│                                                     │
+│ AI Chat (if configured):                            │
+│   • explain [concept]                               │
+│   • write a [thing]                                 │
+│   • help me with [problem]                          │
+│   • [any question]                                  │
+│                                                     │
+│ Voice:                                              │
+│   • Click 🎤 Voice (GUI)                           │
+│   • Type "listen" (Terminal)                        │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## Version History
+
+### v2.1.0 (Current)
+- ✅ Help command added
+- ✅ Status bar in GUI
+- ✅ Timestamps in messages
+- ✅ Better error handling
+- ✅ Thread-safe GUI
+- ✅ Configurable models
+- ✅ Dynamic voice recognition
+- ✅ Flexible command syntax
+
+### v2.0.0
+- GUI interface
+- OpenAI integration
+- Context-aware conversations
+
+### v1.0.0
+- Basic voice commands
+- Terminal interface
+- Web navigation
+
+---
+
+**Happy Assisting! 🎉**
+
+For more information:
+- **Quick Start**: See QUICK_START.md
+- **Bug Fixes**: See BUG_FIXES_AND_IMPROVEMENTS.md
+- **Full Docs**: See README.md
+
+**Version 2.1.0** - Stable - November 2025
