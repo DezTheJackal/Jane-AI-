@@ -1,7 +1,10 @@
 """
 Modern AI Virtual Assistant with GUI and Terminal Support
 Features: OpenAI integration, voice recognition, sleek interface
-FIXED VERSION - Bug fixes and improvements
+
+Version: 2.1.0
+Status: Stable
+Last Updated: November 2025
 """
 
 import pyttsx3
@@ -16,6 +19,10 @@ import threading
 import queue
 import logging
 from typing import Optional, Dict, Any
+
+# Version information
+__version__ = "2.1.0"
+__status__ = "Stable"
 
 # Setup logging
 logging.basicConfig(
