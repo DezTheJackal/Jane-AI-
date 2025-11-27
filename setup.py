@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Assistant - Automated Setup Script
+AI Assistant - Automated Setup Script (IMPROVED VERSION)
 Installs dependencies, creates directories, and configures the assistant
 """
 
@@ -37,22 +37,40 @@ def print_step(step_num, total_steps, description):
     """Print a step in the installation process"""
     print_colored(f"[{step_num}/{total_steps}] {description}", Colors.CYAN)
 
-def run_command(command, description="Running command"):
+def run_command(command, description="Running command", capture_output=True):
     """Run a shell command and return success status"""
     try:
         print_colored(f"  → {description}...", Colors.BLUE)
-        result = subprocess.run(
-            command,
-            shell=True,
-            check=True,
-            capture_output=True,
-            text=True
-        )
+        
+        if capture_output:
+            result = subprocess.run(
+                command,
+                shell=True,
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout
+            )
+        else:
+            result = subprocess.run(
+                command,
+                shell=True,
+                check=True,
+                timeout=300
+            )
+        
         print_colored(f"  ✓ Success!", Colors.GREEN)
-        return True
+        return True, None
+    except subprocess.TimeoutExpired:
+        print_colored(f"  ✗ Timeout: Command took too long", Colors.RED)
+        return False, "Timeout"
     except subprocess.CalledProcessError as e:
-        print_colored(f"  ✗ Error: {e.stderr}", Colors.RED)
-        return False
+        error_msg = e.stderr if capture_output and e.stderr else str(e)
+        print_colored(f"  ✗ Error: {error_msg}", Colors.RED)
+        return False, error_msg
+    except Exception as e:
+        print_colored(f"  ✗ Unexpected error: {e}", Colors.RED)
+        return False, str(e)
 
 def check_python_version():
     """Check if Python version is compatible"""
@@ -61,10 +79,41 @@ def check_python_version():
     version = sys.version_info
     if version.major < 3 or (version.major == 3 and version.minor < 7):
         print_colored(f"✗ Python 3.7+ required. You have Python {version.major}.{version.minor}", Colors.RED)
+        print_colored("\nPlease upgrade Python:", Colors.YELLOW)
+        print_colored("  • Windows: Download from https://www.python.org/downloads/", Colors.YELLOW)
+        print_colored("  • macOS: brew install python3", Colors.YELLOW)
+        print_colored("  • Linux: sudo apt install python3 python3-pip", Colors.YELLOW)
         return False
     
     print_colored(f"✓ Python {version.major}.{version.minor}.{version.micro} detected", Colors.GREEN)
     return True
+
+def check_pip():
+    """Check if pip is available"""
+    print_header("📦 Checking pip")
+    
+    try:
+        subprocess.run([sys.executable, "-m", "pip", "--version"], 
+                      check=True, capture_output=True)
+        print_colored("✓ pip is available", Colors.GREEN)
+        return True
+    except:
+        print_colored("✗ pip is not available", Colors.RED)
+        print_colored("\nInstalling pip...", Colors.YELLOW)
+        
+        # Try to install pip
+        success, _ = run_command(
+            f"{sys.executable} -m ensurepip --default-pip",
+            "Installing pip"
+        )
+        
+        if not success:
+            print_colored("\nManual pip installation required:", Colors.YELLOW)
+            print_colored("  • Download: https://bootstrap.pypa.io/get-pip.py", Colors.YELLOW)
+            print_colored("  • Run: python get-pip.py", Colors.YELLOW)
+            return False
+        
+        return True
 
 def install_pip_packages():
     """Install required Python packages"""
@@ -73,7 +122,6 @@ def install_pip_packages():
     packages = [
         "pyttsx3",
         "SpeechRecognition",
-        "pyaudio",
         "openai",
         "wikipedia",
         "requests"
@@ -81,50 +129,129 @@ def install_pip_packages():
     
     os_name = platform.system()
     
+    # Upgrade pip first
+    print_colored("\n🔄 Upgrading pip to latest version...", Colors.CYAN)
+    run_command(
+        f"{sys.executable} -m pip install --upgrade pip",
+        "Upgrading pip"
+    )
+    
     # Special handling for PyAudio
+    print_colored("\n🎤 Installing PyAudio (audio input/output)...", Colors.CYAN)
+    pyaudio_installed = False
+    
     if os_name == "Darwin":  # macOS
         print_colored("📱 macOS detected - Installing PortAudio first...", Colors.YELLOW)
-        run_command("brew install portaudio", "Installing PortAudio via Homebrew")
+        
+        # Check if Homebrew is installed
+        try:
+            subprocess.run(["brew", "--version"], check=True, capture_output=True)
+            success, _ = run_command("brew install portaudio", "Installing PortAudio via Homebrew")
+            
+            if success:
+                success, _ = run_command(
+                    f"{sys.executable} -m pip install pyaudio",
+                    "Installing PyAudio"
+                )
+                pyaudio_installed = success
+        except:
+            print_colored("  ⚠ Homebrew not found. Please install Homebrew first:", Colors.YELLOW)
+            print_colored("     /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"", Colors.YELLOW)
+    
     elif os_name == "Linux":
         print_colored("🐧 Linux detected - Installing system dependencies...", Colors.YELLOW)
-        distro_commands = [
-            "sudo apt-get update && sudo apt-get install -y python3-pyaudio portaudio19-dev",
-            "sudo yum install -y python3-pyaudio portaudio-devel",
-            "sudo pacman -S python-pyaudio portaudio"
+        
+        # Try different package managers
+        package_managers = [
+            ("apt-get", "sudo apt-get update && sudo apt-get install -y python3-pyaudio portaudio19-dev python3-dev"),
+            ("yum", "sudo yum install -y python3-pyaudio portaudio-devel python3-devel"),
+            ("dnf", "sudo dnf install -y python3-pyaudio portaudio-devel python3-devel"),
+            ("pacman", "sudo pacman -S --noconfirm python-pyaudio portaudio")
         ]
-        for cmd in distro_commands:
-            if run_command(cmd, "Installing system audio libraries"):
-                break
-    elif os_name == "Windows":
-        print_colored("🪟 Windows detected - PyAudio may require additional setup", Colors.YELLOW)
-        print_colored("   If PyAudio fails, try: pip install pipwin && pipwin install pyaudio", Colors.YELLOW)
+        
+        for pm, cmd in package_managers:
+            try:
+                subprocess.run([pm, "--version"], check=True, capture_output=True)
+                print_colored(f"  Found package manager: {pm}", Colors.GREEN)
+                success, _ = run_command(cmd, f"Installing audio dependencies via {pm}", capture_output=False)
+                
+                if success:
+                    success, _ = run_command(
+                        f"{sys.executable} -m pip install pyaudio",
+                        "Installing PyAudio"
+                    )
+                    pyaudio_installed = success
+                    break
+            except:
+                continue
+        
+        if not pyaudio_installed:
+            print_colored("  ⚠ Could not install PyAudio automatically", Colors.YELLOW)
+            print_colored("    Try manually: sudo apt-get install python3-pyaudio", Colors.YELLOW)
     
-    # Install packages
+    elif os_name == "Windows":
+        print_colored("🪟 Windows detected - Using pipwin for PyAudio...", Colors.YELLOW)
+        
+        # Try pipwin first
+        success, _ = run_command(
+            f"{sys.executable} -m pip install pipwin",
+            "Installing pipwin"
+        )
+        
+        if success:
+            success, _ = run_command(
+                f"{sys.executable} -m pipwin install pyaudio",
+                "Installing PyAudio via pipwin"
+            )
+            pyaudio_installed = success
+        
+        if not pyaudio_installed:
+            print_colored("  ⚠ pipwin failed, trying direct installation...", Colors.YELLOW)
+            success, _ = run_command(
+                f"{sys.executable} -m pip install pyaudio",
+                "Installing PyAudio"
+            )
+            pyaudio_installed = success
+        
+        if not pyaudio_installed:
+            print_colored("  ⚠ PyAudio installation failed", Colors.YELLOW)
+            print_colored("    Manual installation:", Colors.YELLOW)
+            print_colored("    1. Download wheel from: https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio", Colors.YELLOW)
+            print_colored("    2. Run: pip install PyAudio‑0.2.11‑cp3X‑cp3Xm‑win_amd64.whl", Colors.YELLOW)
+    
+    # Install remaining packages
+    print_colored("\n📚 Installing core packages...", Colors.CYAN)
     success_count = 0
     failed_packages = []
     
     for i, package in enumerate(packages, 1):
         print_colored(f"\n[{i}/{len(packages)}] Installing {package}...", Colors.CYAN)
         
-        if package == "pyaudio" and os_name == "Windows":
-            # Try pipwin first on Windows
-            if run_command("pip install pipwin", "Installing pipwin"):
-                if run_command(f"pipwin install {package}", f"Installing {package} via pipwin"):
-                    success_count += 1
-                    continue
+        success, error = run_command(
+            f"{sys.executable} -m pip install {package}",
+            f"Installing {package}"
+        )
         
-        if run_command(f"pip install {package}", f"Installing {package}"):
+        if success:
             success_count += 1
         else:
-            failed_packages.append(package)
+            failed_packages.append((package, error))
     
-    print(f"\n✓ Successfully installed {success_count}/{len(packages)} packages")
+    # Summary
+    print(f"\n{'='*70}")
+    total_packages = len(packages) + (1 if pyaudio_installed else 0)
+    installed = success_count + (1 if pyaudio_installed else 0)
+    print_colored(f"✓ Successfully installed {installed}/{total_packages} packages", Colors.GREEN)
     
     if failed_packages:
-        print_colored(f"\n⚠ Failed to install: {', '.join(failed_packages)}", Colors.YELLOW)
-        print_colored("  You may need to install these manually.", Colors.YELLOW)
+        print_colored(f"\n⚠ Failed packages:", Colors.YELLOW)
+        for pkg, error in failed_packages:
+            print_colored(f"  • {pkg}: {error[:100]}", Colors.RED)
     
-    return len(failed_packages) == 0
+    if not pyaudio_installed:
+        print_colored(f"\n⚠ PyAudio not installed - voice features will not work", Colors.YELLOW)
+    
+    return len(failed_packages) == 0 and pyaudio_installed
 
 def create_directory_structure():
     """Create necessary directories"""
@@ -144,25 +271,33 @@ def create_directory_structure():
     
     created = []
     for name, path in directories.items():
-        if not path.exists():
-            path.mkdir(parents=True, exist_ok=True)
-            created.append(str(path))
-            print_colored(f"  ✓ Created: {path}", Colors.GREEN)
-        else:
-            print_colored(f"  ℹ Already exists: {path}", Colors.BLUE)
+        try:
+            if not path.exists():
+                path.mkdir(parents=True, exist_ok=True)
+                created.append(str(path))
+                print_colored(f"  ✓ Created: {path}", Colors.GREEN)
+            else:
+                print_colored(f"  ℹ Already exists: {path}", Colors.BLUE)
+        except Exception as e:
+            print_colored(f"  ✗ Failed to create {path}: {e}", Colors.RED)
     
-    # Create sample files
-    readme_path = directories["base"] / "README.txt"
-    if not readme_path.exists():
-        with open(readme_path, 'w') as f:
-            f.write("AI Assistant Directory Structure\n")
-            f.write("================================\n\n")
-            f.write("music/     - Place your music files here\n")
-            f.write("videos/    - Place your video files here\n")
-            f.write("documents/ - Place documents here\n")
-            f.write("logs/      - Assistant logs are stored here\n")
-            f.write("temp/      - Temporary files\n")
-        print_colored(f"  ✓ Created README in {base_dir}", Colors.GREEN)
+    # Create README
+    try:
+        readme_path = directories["base"] / "README.txt"
+        if not readme_path.exists():
+            with open(readme_path, 'w', encoding='utf-8') as f:
+                f.write("AI Assistant Directory Structure\n")
+                f.write("================================\n\n")
+                f.write("music/     - Place your music files here (MP3, WAV)\n")
+                f.write("videos/    - Place your video files here (MP4, AVI)\n")
+                f.write("documents/ - Place documents here\n")
+                f.write("logs/      - Assistant logs are stored here\n")
+                f.write("temp/      - Temporary files\n\n")
+                f.write("Configuration file: ~/.ai_assistant_config.json\n")
+                f.write("Main script: ai_assistant.py\n")
+            print_colored(f"  ✓ Created README in {base_dir}", Colors.GREEN)
+    except Exception as e:
+        print_colored(f"  ⚠ Failed to create README: {e}", Colors.YELLOW)
     
     return directories
 
@@ -185,6 +320,8 @@ def create_config_file(directories):
         "voice_index": 1,
         "openai_api_key": "",
         "assistant_name": "Assistant",
+        "model": "gpt-3.5-turbo",
+        "max_history": 10,
         "directories": {
             "base": str(directories["base"]),
             "music": str(directories["music"]),
@@ -199,10 +336,14 @@ def create_config_file(directories):
         }
     }
     
-    with open(config_path, 'w') as f:
-        json.dump(config, f, indent=2)
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2)
+        print_colored(f"  ✓ Configuration file created: {config_path}", Colors.GREEN)
+    except Exception as e:
+        print_colored(f"  ✗ Failed to create config: {e}", Colors.RED)
+        return None
     
-    print_colored(f"  ✓ Configuration file created: {config_path}", Colors.GREEN)
     return config_path
 
 def configure_openai_api():
@@ -219,18 +360,22 @@ def configure_openai_api():
         
         if api_key:
             config_path = Path.home() / ".ai_assistant_config.json"
-            with open(config_path, 'r') as f:
-                config = json.load(f)
             
-            config['openai_api_key'] = api_key
-            
-            with open(config_path, 'w') as f:
-                json.dump(config, f, indent=2)
-            
-            print_colored("  ✓ OpenAI API key saved!", Colors.GREEN)
-            return True
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                
+                config['openai_api_key'] = api_key
+                
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, indent=2)
+                
+                print_colored("  ✓ OpenAI API key saved!", Colors.GREEN)
+                return True
+            except Exception as e:
+                print_colored(f"  ✗ Failed to save API key: {e}", Colors.RED)
     
-    print_colored("  ℹ You can configure OpenAI later by running:", Colors.YELLOW)
+    print_colored("\n  ℹ You can configure OpenAI later by running:", Colors.YELLOW)
     print_colored("     python ai_assistant.py --config", Colors.YELLOW)
     return False
 
@@ -257,6 +402,9 @@ def download_assistant_files():
     if missing_files:
         print_colored(f"\n⚠ Missing files: {', '.join(missing_files)}", Colors.YELLOW)
         print_colored("  Please ensure all assistant files are in the current directory.", Colors.YELLOW)
+        print_colored("  Required files:", Colors.YELLOW)
+        for file in required_files:
+            print_colored(f"    • {file}", Colors.YELLOW)
         return False
     
     return True
@@ -267,52 +415,56 @@ def create_launcher_scripts(directories):
     
     base_dir = directories["base"]
     current_dir = Path.cwd()
+    python_exec = sys.executable
     
-    # Windows batch file
-    if platform.system() == "Windows":
-        bat_content = f"""@echo off
+    try:
+        # Windows batch file
+        if platform.system() == "Windows":
+            bat_content = f"""@echo off
 cd /d "{current_dir}"
-python ai_assistant.py
+"{python_exec}" ai_assistant.py
 pause
 """
-        bat_path = base_dir / "Launch_Assistant.bat"
-        with open(bat_path, 'w') as f:
-            f.write(bat_content)
-        print_colored(f"  ✓ Created: Launch_Assistant.bat", Colors.GREEN)
-        
-        # Terminal mode batch
-        bat_terminal = f"""@echo off
+            bat_path = base_dir / "Launch_Assistant.bat"
+            with open(bat_path, 'w') as f:
+                f.write(bat_content)
+            print_colored(f"  ✓ Created: Launch_Assistant.bat", Colors.GREEN)
+            
+            # Terminal mode batch
+            bat_terminal = f"""@echo off
 cd /d "{current_dir}"
-python ai_assistant.py --terminal
+"{python_exec}" ai_assistant.py --terminal
 pause
 """
-        bat_term_path = base_dir / "Launch_Assistant_Terminal.bat"
-        with open(bat_term_path, 'w') as f:
-            f.write(bat_terminal)
-        print_colored(f"  ✓ Created: Launch_Assistant_Terminal.bat", Colors.GREEN)
-    
-    # Unix shell script
-    else:
-        sh_content = f"""#!/bin/bash
-cd "{current_dir}"
-python3 ai_assistant.py
-"""
-        sh_path = base_dir / "launch_assistant.sh"
-        with open(sh_path, 'w') as f:
-            f.write(sh_content)
-        os.chmod(sh_path, 0o755)
-        print_colored(f"  ✓ Created: launch_assistant.sh", Colors.GREEN)
+            bat_term_path = base_dir / "Launch_Assistant_Terminal.bat"
+            with open(bat_term_path, 'w') as f:
+                f.write(bat_terminal)
+            print_colored(f"  ✓ Created: Launch_Assistant_Terminal.bat", Colors.GREEN)
         
-        # Terminal mode script
-        sh_terminal = f"""#!/bin/bash
+        # Unix shell script
+        else:
+            sh_content = f"""#!/bin/bash
 cd "{current_dir}"
-python3 ai_assistant.py --terminal
+"{python_exec}" ai_assistant.py
 """
-        sh_term_path = base_dir / "launch_assistant_terminal.sh"
-        with open(sh_term_path, 'w') as f:
-            f.write(sh_terminal)
-        os.chmod(sh_term_path, 0o755)
-        print_colored(f"  ✓ Created: launch_assistant_terminal.sh", Colors.GREEN)
+            sh_path = base_dir / "launch_assistant.sh"
+            with open(sh_path, 'w') as f:
+                f.write(sh_content)
+            os.chmod(sh_path, 0o755)
+            print_colored(f"  ✓ Created: launch_assistant.sh", Colors.GREEN)
+            
+            # Terminal mode script
+            sh_terminal = f"""#!/bin/bash
+cd "{current_dir}"
+"{python_exec}" ai_assistant.py --terminal
+"""
+            sh_term_path = base_dir / "launch_assistant_terminal.sh"
+            with open(sh_term_path, 'w') as f:
+                f.write(sh_terminal)
+            os.chmod(sh_term_path, 0o755)
+            print_colored(f"  ✓ Created: launch_assistant_terminal.sh", Colors.GREEN)
+    except Exception as e:
+        print_colored(f"  ⚠ Failed to create launcher scripts: {e}", Colors.YELLOW)
 
 def test_installation():
     """Test if installation was successful"""
@@ -322,6 +474,8 @@ def test_installation():
         ("pyttsx3", "Text-to-Speech"),
         ("speech_recognition", "Speech Recognition"),
         ("openai", "OpenAI API"),
+        ("wikipedia", "Wikipedia"),
+        ("requests", "Requests")
     ]
     
     passed = 0
@@ -344,11 +498,11 @@ def test_installation():
     except ImportError:
         print_colored(f"  ⚠ Audio Input (PyAudio) - Not installed", Colors.YELLOW)
         print_colored(f"    Voice input will not work without PyAudio", Colors.YELLOW)
-        failed.append("PyAudio")
+        failed.append("PyAudio (optional)")
     
     print(f"\n{passed}/{len(tests) + 1} tests passed")
     
-    return len(failed) == 0
+    return len(failed) == 0 or "PyAudio (optional)" in failed
 
 def print_final_instructions(directories):
     """Print final setup instructions"""
@@ -376,8 +530,9 @@ def print_final_instructions(directories):
     
     print_colored("\nTroubleshooting:", Colors.BOLD)
     print("  • If voice recognition fails, check microphone permissions")
-    print("  • If PyAudio installation failed, see README for manual installation")
+    print("  • If PyAudio installation failed, see BUG_FIXES_AND_IMPROVEMENTS.md")
     print("  • For issues, check logs in: " + str(directories['logs']))
+    print("  • Run in terminal mode first to test: python ai_assistant.py --terminal")
     
     print("\n" + "="*70)
     print_colored("  Ready to use! Run: python ai_assistant.py", Colors.GREEN + Colors.BOLD)
@@ -391,12 +546,13 @@ def main():
     ║           🤖 AI ASSISTANT - AUTOMATED SETUP 🤖               ║
     ║                                                               ║
     ║              One-Click Installation & Configuration           ║
+    ║                       IMPROVED VERSION                        ║
     ║                                                               ║
     ╚═══════════════════════════════════════════════════════════════╝
     """, Colors.CYAN + Colors.BOLD)
     
     print_colored("This script will:", Colors.BOLD)
-    print("  ✓ Check Python version")
+    print("  ✓ Check Python version and pip")
     print("  ✓ Install all required dependencies")
     print("  ✓ Create directory structure")
     print("  ✓ Configure the assistant")
@@ -408,7 +564,7 @@ def main():
         print_colored("\nSetup cancelled.", Colors.YELLOW)
         return
     
-    total_steps = 7
+    total_steps = 8
     current_step = 0
     
     # Step 1: Check Python
@@ -418,34 +574,49 @@ def main():
         print_colored("\n✗ Setup failed: Incompatible Python version", Colors.RED)
         return
     
-    # Step 2: Check files
+    # Step 2: Check pip
+    current_step += 1
+    print_step(current_step, total_steps, "Checking pip")
+    if not check_pip():
+        print_colored("\n✗ Setup failed: pip not available", Colors.RED)
+        return
+    
+    # Step 3: Check files
     current_step += 1
     print_step(current_step, total_steps, "Verifying Assistant Files")
     if not download_assistant_files():
-        print_colored("\n✗ Setup incomplete: Missing required files", Colors.RED)
+        print_colored("\n⚠ Setup incomplete: Missing required files", Colors.YELLOW)
+        print_colored("Please download the fixed files and try again.", Colors.YELLOW)
         return
     
-    # Step 3: Install packages
+    # Step 4: Install packages
     current_step += 1
     print_step(current_step, total_steps, "Installing Dependencies")
-    install_pip_packages()
+    packages_ok = install_pip_packages()
     
-    # Step 4: Create directories
+    if not packages_ok:
+        print_colored("\n⚠ Some packages failed to install", Colors.YELLOW)
+        continue_setup = input("Continue with setup anyway? (y/N): ").strip().lower()
+        if continue_setup != 'y':
+            print_colored("\nSetup cancelled.", Colors.YELLOW)
+            return
+    
+    # Step 5: Create directories
     current_step += 1
     print_step(current_step, total_steps, "Creating Directory Structure")
     directories = create_directory_structure()
     
-    # Step 5: Create config
+    # Step 6: Create config
     current_step += 1
     print_step(current_step, total_steps, "Creating Configuration")
     create_config_file(directories)
     
-    # Step 6: Configure OpenAI
+    # Step 7: Configure OpenAI
     current_step += 1
     print_step(current_step, total_steps, "OpenAI Setup")
     configure_openai_api()
     
-    # Step 7: Create launchers
+    # Step 8: Create launchers
     current_step += 1
     print_step(current_step, total_steps, "Creating Launcher Scripts")
     create_launcher_scripts(directories)
@@ -464,4 +635,6 @@ if __name__ == "__main__":
         sys.exit(1)
     except Exception as e:
         print_colored(f"\n✗ Setup failed with error: {e}", Colors.RED)
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
