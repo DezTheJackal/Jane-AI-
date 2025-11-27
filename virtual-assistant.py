@@ -1,330 +1,464 @@
-import pyttsx3 
-import speech_recognition as sr 
+"""
+Modern AI Virtual Assistant with GUI and Terminal Support
+Features: OpenAI integration, voice recognition, sleek interface
+FIXED VERSION - Bug fixes and improvements
+"""
+
+import pyttsx3
+import speech_recognition as sr
 import datetime
-import wikipedia
 import webbrowser
 import os
-import smtplib
 import sys
-import getpass
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import json
+from pathlib import Path
+import threading
+import queue
+import logging
+from typing import Optional, Dict, Any
 
-# Initialize text-to-speech engine
-engine = pyttsx3.init('sapi5')
-voices = engine.getProperty('voices')
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Check if voices are available and set female voice
-if voices:
-    engine.setProperty('voice', voices[1].id if len(voices) > 1 else voices[0].id)
-else:
-    print("Warning: No voices found. Text-to-speech may not work properly.")
+# Try to import OpenAI
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    logger.warning("OpenAI not installed. Run: pip install openai")
 
-def speak(audio):
-    engine.say(audio)
-    engine.runAndWait()
-
-def wishMe():
-    hour = int(datetime.datetime.now().hour)
-    if hour >= 0 and hour < 12:
-        speak("Good Morning Master!")
-    elif hour >= 12 and hour < 18:
-        speak("Good Afternoon Master!")   
-    else:
-        speak("Good Evening Master!")  
-   
-    speak("I am your Jinnie and you are my master! Let's make some magic! Please tell me how may I help you")       
-
-def takecommand():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening...")
-        r.pause_threshold = 1
-        r.adjust_for_ambient_noise(source)  # Added for better recognition
-        audio = r.listen(source)
-
-    try:
-        print("Recognizing...")    
-        query = r.recognize_google(audio, language='en-in')
-        print(f"User said: {query}\n")
-    except Exception as e:
-        print(e)    
-        print("Say that again please...")  
-        return "None"
-    return query
-
-def sendEmail(to, content):
-    """
-    Secure email sending function
-    """
-    try:
-        # Get email credentials securely
-        sender_email = input("Enter your email: ")
-        password = getpass.getpass("Enter your email password: ")
+class AIAssistant:
+    def __init__(self, use_gui: bool = True):
+        """Initialize the AI Assistant"""
+        self.use_gui = use_gui
+        self.config_file = Path.home() / ".ai_assistant_config.json"
+        self.config = self.load_config()
         
-        # Create message
-        msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = to
-        msg['Subject'] = "Message from Jinnie Assistant"
+        # Initialize text-to-speech with error handling
+        try:
+            self.engine = pyttsx3.init()
+            self.setup_voice()
+        except Exception as e:
+            logger.error(f"Text-to-speech initialization failed: {e}")
+            self.engine = None
         
-        # Add body to email
-        msg.attach(MIMEText(content, 'plain'))
+        # Initialize speech recognition
+        self.recognizer = sr.Recognizer()
+        self.recognizer.pause_threshold = 0.8
+        self.recognizer.energy_threshold = 300
+        self.recognizer.dynamic_energy_threshold = True
         
-        # Gmail SMTP configuration
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.ehlo()
-        server.starttls()
-        server.login(sender_email, password)
+        # Initialize OpenAI if available
+        self.client = None
+        if OPENAI_AVAILABLE and self.config.get('openai_api_key'):
+            try:
+                self.client = OpenAI(api_key=self.config['openai_api_key'])
+                logger.info("OpenAI client initialized successfully")
+            except Exception as e:
+                logger.error(f"OpenAI initialization failed: {e}")
         
-        # Send email
-        text = msg.as_string()
-        server.sendmail(sender_email, to, text)
-        server.close()
+        # Conversation history for context
+        self.conversation_history = []
         
-        return True
-    except Exception as e:
-        print(f"Email error: {e}")
-        return False
-
-def safe_file_operation(file_path, operation="open"):
-    """
-    Safely handle file operations with error checking
-    """
-    try:
-        if os.path.exists(file_path):
-            if operation == "open":
-                os.startfile(file_path)
-                return True
-            elif operation == "list":
-                return os.listdir(file_path)
-        else:
-            speak(f"Sorry master, the file or directory {file_path} does not exist.")
+        # Command queue for thread-safe operations
+        self.command_queue = queue.Queue()
+        self.running = True
+        
+    def load_config(self) -> Dict[str, Any]:
+        """Load configuration from file"""
+        default_config = {
+            'voice_rate': 175,
+            'voice_volume': 0.9,
+            'voice_index': 1,
+            'openai_api_key': '',
+            'assistant_name': 'Assistant',
+            'model': 'gpt-3.5-turbo',
+            'max_history': 10
+        }
+        
+        if self.config_file.exists():
+            try:
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    loaded_config = json.load(f)
+                    # Merge with defaults to ensure all keys exist
+                    default_config.update(loaded_config)
+            except Exception as e:
+                logger.error(f"Failed to load config: {e}")
+        
+        return default_config
+    
+    def save_config(self) -> bool:
+        """Save configuration to file"""
+        try:
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, indent=2)
+            logger.info("Configuration saved successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save config: {e}")
             return False
+    
+    def setup_voice(self):
+        """Configure text-to-speech voice"""
+        if not self.engine:
+            return
+        
+        try:
+            voices = self.engine.getProperty('voices')
+            if voices:
+                voice_idx = self.config.get('voice_index', 1)
+                voice_idx = min(voice_idx, len(voices) - 1)
+                self.engine.setProperty('voice', voices[voice_idx].id)
+            
+            self.engine.setProperty('rate', self.config.get('voice_rate', 175))
+            self.engine.setProperty('volume', self.config.get('voice_volume', 0.9))
+        except Exception as e:
+            logger.error(f"Voice setup failed: {e}")
+    
+    def speak(self, text: str, print_text: bool = True):
+        """Text-to-speech output"""
+        if print_text:
+            print(f"🤖 {text}")
+        
+        if not self.engine:
+            return
+        
+        try:
+            self.engine.say(text)
+            self.engine.runAndWait()
+        except Exception as e:
+            logger.error(f"Speech error: {e}")
+    
+    def listen(self) -> Optional[str]:
+        """Listen for voice input"""
+        try:
+            with sr.Microphone() as source:
+                print("🎤 Listening...")
+                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                
+                try:
+                    audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=10)
+                except sr.WaitTimeoutError:
+                    logger.warning("Listening timeout - no speech detected")
+                    return None
+                
+            print("🔄 Recognizing...")
+            query = self.recognizer.recognize_google(audio, language='en-US')
+            print(f"👤 You said: {query}")
+            return query.lower()
+            
+        except sr.UnknownValueError:
+            print("❌ Could not understand audio")
+            return None
+        except sr.RequestError as e:
+            logger.error(f"Speech recognition service error: {e}")
+            print("❌ Speech recognition service unavailable")
+            return None
+        except Exception as e:
+            logger.error(f"Listening error: {e}")
+            return None
+    
+    def ask_openai(self, query: str) -> str:
+        """Query OpenAI API with conversation context"""
+        if not self.client:
+            return "OpenAI is not configured. Please set your API key using: python ai_assistant.py --config"
+        
+        try:
+            # Add user message to history
+            self.conversation_history.append({"role": "user", "content": query})
+            
+            # Keep only last N messages for context
+            max_history = self.config.get('max_history', 10)
+            context = self.conversation_history[-max_history:]
+            
+            # Add system message
+            messages = [
+                {
+                    "role": "system", 
+                    "content": "You are a helpful, friendly AI assistant. Keep responses concise and natural."
+                }
+            ] + context
+            
+            # Call OpenAI API
+            model = self.config.get('model', 'gpt-3.5-turbo')
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                max_tokens=300,
+                temperature=0.7
+            )
+            
+            answer = response.choices[0].message.content.strip()
+            
+            # Add assistant response to history
+            self.conversation_history.append({"role": "assistant", "content": answer})
+            
+            return answer
+            
+        except Exception as e:
+            logger.error(f"OpenAI API error: {e}")
+            return f"Sorry, I encountered an error: {str(e)}"
+    
+    def get_time(self) -> str:
+        """Get current time"""
+        now = datetime.datetime.now()
+        time_str = now.strftime("%I:%M %p")
+        return f"The time is {time_str}"
+    
+    def get_date(self) -> str:
+        """Get current date"""
+        now = datetime.datetime.now()
+        date_str = now.strftime("%A, %B %d, %Y")
+        return f"Today is {date_str}"
+    
+    def greet(self) -> str:
+        """Greet the user"""
+        hour = datetime.datetime.now().hour
+        if hour < 12:
+            greeting = "Good morning"
+        elif hour < 18:
+            greeting = "Good afternoon"
+        else:
+            greeting = "Good evening"
+        
+        name = self.config.get('assistant_name', 'Assistant')
+        return f"{greeting}! I'm {name}, your AI assistant. How can I help you?"
+    
+    def process_command(self, query: str) -> Optional[str]:
+        """Process user command"""
+        if not query:
+            return None
+        
+        query = query.lower().strip()
+        
+        # Exit commands
+        if any(word in query for word in ['exit', 'quit', 'bye', 'goodbye']):
+            return "exit"
+        
+        # Help command
+        if 'help' in query or 'what can you do' in query:
+            return self.get_help()
+        
+        # Time
+        if 'time' in query:
+            return self.get_time()
+        
+        # Date
+        if any(word in query for word in ['date', 'day', 'today']) and 'update' not in query:
+            return self.get_date()
+        
+        # Open Google
+        if 'open google' in query or query.startswith('google '):
+            search_query = query.replace('open google', '').replace('google', '').strip()
+            if search_query:
+                try:
+                    webbrowser.open(f"https://www.google.com/search?q={search_query}")
+                    return f"Searching Google for: {search_query}"
+                except Exception as e:
+                    logger.error(f"Failed to open browser: {e}")
+                    return "Sorry, I couldn't open your browser"
+            else:
+                try:
+                    webbrowser.open("https://www.google.com")
+                    return "Opening Google"
+                except Exception as e:
+                    logger.error(f"Failed to open browser: {e}")
+                    return "Sorry, I couldn't open your browser"
+        
+        # Open YouTube
+        if 'youtube' in query:
+            search_query = query.replace('open youtube', '').replace('youtube', '').strip()
+            if search_query:
+                try:
+                    webbrowser.open(f"https://www.youtube.com/results?search_query={search_query}")
+                    return f"Searching YouTube for: {search_query}"
+                except Exception as e:
+                    logger.error(f"Failed to open browser: {e}")
+                    return "Sorry, I couldn't open your browser"
+            else:
+                try:
+                    webbrowser.open("https://www.youtube.com")
+                    return "Opening YouTube"
+                except Exception as e:
+                    logger.error(f"Failed to open browser: {e}")
+                    return "Sorry, I couldn't open your browser"
+        
+        # Open websites
+        websites = {
+            'github': 'https://github.com',
+            'linkedin': 'https://linkedin.com',
+            'twitter': 'https://twitter.com',
+            'facebook': 'https://facebook.com',
+            'reddit': 'https://reddit.com',
+            'gmail': 'https://gmail.com'
+        }
+        
+        for site, url in websites.items():
+            if site in query and 'open' in query:
+                try:
+                    webbrowser.open(url)
+                    return f"Opening {site.title()}"
+                except Exception as e:
+                    logger.error(f"Failed to open {site}: {e}")
+                    return f"Sorry, I couldn't open {site}"
+        
+        # Search web
+        if any(word in query for word in ['search for', 'search', 'look up', 'find']):
+            search_query = query
+            for word in ['search for', 'search', 'look up', 'find']:
+                search_query = search_query.replace(word, '').strip()
+            if search_query:
+                try:
+                    webbrowser.open(f"https://www.google.com/search?q={search_query}")
+                    return f"Searching for: {search_query}"
+                except Exception as e:
+                    logger.error(f"Failed to search: {e}")
+                    return "Sorry, I couldn't perform the search"
+        
+        # Use OpenAI for general queries
+        if self.client:
+            return self.ask_openai(query)
+        else:
+            return ("I can help with time, date, opening websites, and web searches. "
+                   "For advanced AI features, please configure your OpenAI API key using: "
+                   "python ai_assistant.py --config")
+    
+    def get_help(self) -> str:
+        """Return help message"""
+        return """Available commands:
+• Time: "what time is it?"
+• Date: "what's the date?"
+• Search: "search for [topic]"
+• Websites: "open google/youtube/github/etc"
+• Exit: "exit" or "quit"
+• Help: "help" or "what can you do?"
+""" + ("• AI Chat: Ask me anything!" if self.client else "• Configure OpenAI for AI chat features")
+    
+    def run_terminal(self):
+        """Run in terminal mode"""
+        print("\n" + "="*60)
+        print("🤖 AI ASSISTANT - Terminal Mode")
+        print("="*60)
+        print("\nCommands:")
+        print("  - Say 'listen' to use voice input")
+        print("  - Type your questions directly")
+        print("  - Say 'exit' to quit")
+        print("  - Say 'help' for available commands")
+        print("\n" + "="*60 + "\n")
+        
+        # Greet user
+        greeting = self.greet()
+        self.speak(greeting)
+        
+        while self.running:
+            try:
+                user_input = input("\n👤 You: ").strip()
+                
+                if not user_input:
+                    continue
+                
+                # Voice input mode
+                if user_input.lower() == 'listen':
+                    query = self.listen()
+                    if query:
+                        response = self.process_command(query)
+                    else:
+                        continue
+                else:
+                    response = self.process_command(user_input)
+                
+                if response == "exit":
+                    self.speak("Goodbye! Have a great day!")
+                    break
+                elif response:
+                    self.speak(response)
+                    
+            except KeyboardInterrupt:
+                print("\n\n👋 Interrupted by user")
+                break
+            except Exception as e:
+                logger.error(f"Error in terminal loop: {e}")
+                print(f"❌ Error: {e}")
+    
+    def run_gui(self):
+        """Run with GUI (imported separately to keep dependencies optional)"""
+        try:
+            from ai_assistant_gui import AssistantGUI
+            gui = AssistantGUI(self)
+            gui.run()
+        except ImportError as e:
+            logger.error(f"GUI import failed: {e}")
+            print("GUI dependencies not available. Running in terminal mode.")
+            print("Make sure ai_assistant_gui.py is in the same directory.")
+            self.run_terminal()
+        except Exception as e:
+            logger.error(f"GUI error: {e}")
+            print(f"GUI error: {e}")
+            print("Running in terminal mode instead.")
+            self.run_terminal()
+
+def main():
+    """Main entry point"""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description='AI Virtual Assistant',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python ai_assistant.py              # Run with GUI
+  python ai_assistant.py --terminal   # Run in terminal mode
+  python ai_assistant.py --config     # Configure settings
+        """
+    )
+    parser.add_argument('--terminal', '-t', action='store_true', 
+                       help='Run in terminal mode')
+    parser.add_argument('--config', '-c', action='store_true',
+                       help='Configure OpenAI API key and settings')
+    
+    args = parser.parse_args()
+    
+    assistant = AIAssistant(use_gui=not args.terminal)
+    
+    if args.config:
+        print("\n🔧 Configuration")
+        print("="*60)
+        
+        api_key = input("Enter your OpenAI API key (or press Enter to skip): ").strip()
+        if api_key:
+            assistant.config['openai_api_key'] = api_key
+            if assistant.save_config():
+                print("✅ API key saved!")
+        
+        name = input("Enter assistant name (default: Assistant): ").strip()
+        if name:
+            assistant.config['assistant_name'] = name
+            if assistant.save_config():
+                print(f"✅ Assistant name set to: {name}")
+        
+        model = input("Enter OpenAI model (default: gpt-3.5-turbo): ").strip()
+        if model:
+            assistant.config['model'] = model
+            if assistant.save_config():
+                print(f"✅ Model set to: {model}")
+        
+        print("\n" + "="*60)
+        return
+    
+    try:
+        if args.terminal:
+            assistant.run_terminal()
+        else:
+            assistant.run_gui()
     except Exception as e:
-        speak(f"Sorry master, I couldn't access the file. Error: {str(e)}")
-        return False
+        logger.error(f"Fatal error: {e}")
+        print(f"Fatal error: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    wishMe()
-    while True:
-        query = takecommand().lower()
-        
-        if query == "none":
-            continue
-
-        if "wikipedia" in query:
-            speak('Searching Wikipedia...')
-            query = query.replace("wikipedia", "")
-            try:
-                results = wikipedia.summary(query, sentences=2)
-                speak("According to Wikipedia")
-                print(results)
-                speak(results)
-            except wikipedia.exceptions.DisambiguationError as e:
-                speak("There are multiple results. Please be more specific.")
-                print(f"Options: {e.options[:5]}")
-            except wikipedia.exceptions.PageError:
-                speak("Sorry master, I couldn't find that information on Wikipedia.")
-            except Exception as e:
-                speak("Sorry master, there was an error searching Wikipedia.")
-
-        elif "open google" in query:
-            speak("master, what should i search on google")
-            cm = takecommand().lower()
-            if cm != "none":
-                webbrowser.open(f"https://www.google.com/search?q={cm}")
-                speak("Thank you master, You will be redirected to the link soon.")
-
-        elif "open youtube" in query:
-            speak("master, what should i search on youtube")
-            x = takecommand().lower()
-            if x != "none":
-                webbrowser.open(f"https://www.youtube.com/results?search_query={x}")
-                speak("Thank you master, You will be redirected to the link soon.")
-            
-        elif "open linkedin" in query:
-            webbrowser.open("https://www.linkedin.com/")
-            speak("Thank you master, You will be redirected to LinkedIn soon.")
-            
-        elif "open github" in query:
-            webbrowser.open("https://github.com/")
-            speak("Thank you master, You will be redirected to GitHub soon.")
-            
-        elif "open meet" in query:
-            webbrowser.open("https://meet.google.com/")   
-            speak("Thank you master, You will be redirected to Google Meet soon.") 
-
-        elif "open facebook" in query:
-            webbrowser.open("https://www.facebook.com/")
-            speak("Thank you master, You will be redirected to Facebook soon.")
-
-        elif "play music" in query:
-            music_dir = 'D:\\music'  # Change this path as needed
-            songs = safe_file_operation(music_dir, "list")
-            if songs:
-                print(songs)    
-                safe_file_operation(os.path.join(music_dir, songs[0]))
-                speak("Playing music for you master")
-            else:
-                speak("Sorry master, I couldn't find your music directory.")
-
-        elif "play video" in query:
-            speak("ok master i am playing videos")
-            video_dir = 'D:\\video'  # Change this path as needed
-            videos = safe_file_operation(video_dir, "list")
-            if videos and len(videos) > 1:
-                safe_file_operation(os.path.join(video_dir, videos[1]))
-            else:
-                speak("Sorry master, I couldn't find your video directory or videos.")
-
-        elif "play song on cloud" in query:
-            speak("tell me the song name!")
-            p = takecommand()
-            if p != "none":
-                webbrowser.open(f"https://soundcloud.com/search?q={p}")
-                speak("Now playing on SoundCloud")
-
-        elif "the time" in query:
-            strTime = datetime.datetime.now().strftime("%H:%M:%S")    
-            speak(f"Master, the time is {strTime}. Hope you are not late. Have a good day.")
-
-        elif "open pdf" in query:
-            # Updated to use a more generic path - user should modify this
-            pdf_path = input("Please enter the full path to your PDF file: ")
-            if safe_file_operation(pdf_path):
-                speak("Opening PDF file.")
-            
-        elif "open teams" in query:
-            # More flexible Teams opening
-            teams_paths = [
-                'C:/Users/Hp/AppData/Local/Microsoft/Teams/Update.exe --processStart "Teams.exe"',
-                'C:/Program Files/Microsoft/Teams/Update.exe --processStart "Teams.exe"',
-                'C:/Program Files (x86)/Microsoft/Teams/Update.exe --processStart "Teams.exe"'
-            ]
-            
-            opened = False
-            for path in teams_paths:
-                if safe_file_operation(path.split(' --')[0]):
-                    os.system(f'"{path}"')
-                    speak("Thank you master, You will be redirected to Teams App.")
-                    opened = True
-                    break
-            
-            if not opened:
-                speak("Sorry master, I couldn't find Microsoft Teams on your system.")
-
-        elif "open code blocks" in query:
-            codeblocks_paths = [
-                "C:/Program Files/CodeBlocks/codeblocks.exe",
-                "C:/Program Files (x86)/CodeBlocks/codeblocks.exe"
-            ]
-            
-            opened = False
-            for path in codeblocks_paths:
-                if safe_file_operation(path):
-                    speak("Thank you master, You will be redirected to Code Blocks.")
-                    opened = True
-                    break
-            
-            if not opened:
-                speak("Sorry master, I couldn't find Code Blocks on your system.")
-
-        elif "open vs code" in query:
-            vscode_paths = [
-                "C:/Users/Hp/AppData/Local/Programs/Microsoft VS Code/Code.exe",
-                "C:/Program Files/Microsoft VS Code/Code.exe",
-                "C:/Program Files (x86)/Microsoft VS Code/Code.exe"
-            ]
-            
-            opened = False
-            for path in vscode_paths:
-                if safe_file_operation(path):
-                    speak("Thank you master, You will be redirected to VS Code.")
-                    opened = True
-                    break
-            
-            if not opened:
-                # Try opening through command line
-                try:
-                    os.system('code')
-                    speak("Thank you master, You will be redirected to VS Code.")
-                except:
-                    speak("Sorry master, I couldn't find VS Code on your system.")
-            
-        elif "open command prompt" in query:
-            os.system('start cmd')
-            speak("Thank you master, You will be redirected to Command Prompt.")
-            
-        elif "why you came" in query:
-            speak("Thanks to the session conducted by IEEE RAIT session, I am Jinnie version 1.O created by Aayushi Mittal. further its secret")
-            
-        elif "you live" in query:
-            speak("I live in desert island magic Lamp. It's all so magical and lonely. Phenomenal cosmic powers ... Itty bitty living space.")    
-      
-        elif "who" in query:
-            speak("The ever impressive, the long contained, often imitated, but never duplicated … Jinnie of the lamp!")    
-
-        elif "how" in query:
-            speak("Thank you master for asking me this question. I am Wonderful, magnificent, glorious, punctual!. What about you")  
-
-        elif "your name" in query:
-            speak("Thanks for Asking my name, myself Jinnie aka Aladin ka Jin naam to suna hoga")  
-            
-        elif "age" in query:
-            speak("Ten thousand years will give you such a crick in the neck!") 
-            
-        elif "good" in query:
-            speak("Splendid! Absolutely marvelous!")  
-             
-        elif "hi" in query:
-            speak("Hi, myself Jinnie aka Aladin ka Jin naam to suna hoga version 1.O. How you doing master")
- 
-        elif "send mail" in query:
-            try:
-                speak("What should I say?")
-                content = takecommand()
-                if content != "none":
-                    to = input("Enter recipient email address: ")
-                    if sendEmail(to, content):
-                        speak("Email has been sent successfully!")
-                    else:
-                        speak("Sorry master, I couldn't send the email. Please check your credentials.")
-            except Exception as e:
-                speak("Sorry, I am not able to send this email. Better Luck next time")
-
-        elif "exit" in query:
-            speak("thanks for using me Master, apologies for annoying you, have a good day... Exit Jinnie version 1.O")
-            sys.exit()
-            
-        elif "treasure" in query:
-            speak("CAVE OF WONDERS...") 
-            speak("Who disturbs my slumber?")  
-            speak("The diamond in the rough!")    
-            speak("Touch nothing but the lamp.")  
-            speak("YOU HAVE TOUCHED THE FORBIDDEN TREASURE! NOW YOU WILL NEVER AGAIN SEE THE LIGHT OF DAY!")  
-            speak("Exit Jinnie version 1.O")
-            sys.exit()
-            
-        elif "cave of wonder" in query:
-            speak("Who disturbs my slumber?")  
-            speak("The diamond in the rough!")    
-            speak("Touch nothing but the lamp.")  
-            speak("YOU HAVE TOUCHED THE FORBIDDEN TREASURE! NOW YOU WILL NEVER AGAIN SEE THE LIGHT OF DAY!")  
-            speak("Exit Jinnie version 1.O")
-            sys.exit()
-            
-        elif "free" in query:
-            speak("Im free. Im free Quick, wish for something outrageous, say, I want the Nile. Wish for the Nile, try that.")  
-            speak("Im history, no, Im mythology, no, I don't care what I am Im free")
-            speak("Im free, I'm free at last, Im hitting the road, Im off to see the world! Im.")    
-            speak("Im gonna to miss you. No matter what anyone says, you'll always be a prince to me.")  
-            speak("Thank you and bye bye")  
-            speak("Exit Jinnie version 1.O")
-            sys.exit()
-        
-        else:
-            speak("hmmm..... ")
-            speak("That... is quite a big wish you got there. Do you have anything more reasonable?")
-            print("You can try these:")
-            print("\n* open google \n* open youtube \n* the time \n* wikipedia [topic] \n* send mail \n* play music \n* open vs code \n* free \nmuch more ...\n")
+    main()
