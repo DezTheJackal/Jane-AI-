@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-AI Assistant - Automated Setup Script (IMPROVED VERSION)
+AI Assistant - Automated Setup Script
+
+Version: 2.1.0
+Status: Stable
+Last Updated: November 2025
+
 Installs dependencies, creates directories, and configures the assistant
 """
 
@@ -546,7 +551,7 @@ def main():
     ║           🤖 AI ASSISTANT - AUTOMATED SETUP 🤖               ║
     ║                                                               ║
     ║              One-Click Installation & Configuration           ║
-    ║                       IMPROVED VERSION                        ║
+    ║                       Version 2.1.0                           ║
     ║                                                               ║
     ╚═══════════════════════════════════════════════════════════════╝
     """, Colors.CYAN + Colors.BOLD)
